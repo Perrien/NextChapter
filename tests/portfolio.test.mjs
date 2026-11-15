@@ -99,15 +99,39 @@ test('invalid or incomplete prices never produce a partial household total', () 
   assert.throws(() => preparePortfolio(fixture(), [{ ...positions[0], shares: -10 }], [definition], sunday), /Invalid holding/);
 });
 test('spending model uses beginning-of-month withdrawals and matches the annuity formula', () => {
-  assert.deepEqual(durationMonths(120000, 10000, 0), { months: 12, capped: false });
+  assert.deepEqual(durationMonths(120000, 10000, 0, 0), { months: 12, capped: false });
   assert.equal(durationMonths(9999, 10000, 0).months, 0);
   assert.equal(durationMonths(100000, 0, 0.05), null);
   const balance = 1744322.32, rate = 0.058, spending = 10000;
   const monthly = Math.expm1(Math.log1p(rate) / 12);
   const analytic = -Math.log1p(-balance * monthly / (spending * (1 + monthly))) / Math.log1p(monthly);
-  assert.equal(durationMonths(balance, spending, rate).months, Math.floor(analytic));
+  assert.equal(durationMonths(balance, spending, rate, 0).months, Math.floor(analytic));
   assert.equal(durationMonths(2000000, 5000, 0.06).capped, true);
   assert.ok(durationMonths(100000, 1000, -0.1).months < 100);
+});
+test('inflating spending matches a growing annuity and shortens the fixed-spending result', () => {
+  const balance = 1500000, spending = 10000, growth = 0.058, inflation = 0.025;
+  const discount = Math.pow((1 + inflation) / (1 + growth), 1 / 12);
+  const analytic = Math.log1p(-balance * (1 - discount) / spending) / Math.log(discount);
+  const result = durationMonths(balance, spending, growth);
+  assert.equal(result.months, Math.floor(analytic));
+  assert.deepEqual(result, durationMonths(balance, spending, growth, inflation));
+  assert.ok(result.months < durationMonths(balance, spending, growth, 0).months);
+});
+test('inflation compounds monthly without changing the first withdrawal', () => {
+  assert.equal(durationMonths(10000, 10000, 0).months, 1);
+  assert.equal(durationMonths(120000, 10000, 0).months, 11);
+  assert.equal(durationMonths(120000, 10000, 0.025, 0.025).months, 12);
+  // Twelve nominal payments grow from 10,000 by the monthly equivalent of 2.5%.
+  const monthlyInflation = Math.pow(1.025, 1 / 12);
+  const payments = Array.from({ length: 12 }, (_, month) => 10000 * Math.pow(monthlyInflation, month));
+  const budget = payments.reduce((sum, value) => sum + value, 0) + 0.01;
+  assert.equal(durationMonths(budget, 10000, 0).months, 12);
+});
+test('spending outlook rejects invalid inflation and simulation horizons', () => {
+  for (const invalid of [NaN, Infinity, -0.025]) assert.equal(durationMonths(100000, 1000, 0.05, invalid), null);
+  assert.equal(durationMonths(100000, 1000, 0.05, 0.025, 0), null);
+  assert.deepEqual(durationMonths(1000000, 1000, 0.05, 0.025, 12), { months: 12, capped: true });
 });
 test('milestones do not invent a positive pace or show distant arrival dates', () => {
   assert.equal(milestone(1700001, 0).months, null);

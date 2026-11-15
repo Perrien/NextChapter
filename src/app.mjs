@@ -1,4 +1,4 @@
-import { preparePortfolio, comparePeriod, summarize, durationMonths, milestone, dateInZone } from './portfolio.mjs';
+import { preparePortfolio, comparePeriod, summarize, durationMonths, milestone, dateInZone, OUTLOOK_ANNUAL_INFLATION } from './portfolio.mjs';
 import { icon } from './icons.mjs';
 
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -135,6 +135,11 @@ function renderMilestone() {
 }
 function renderOutlook() {
   if (!portfolio) return;
+  const inflation = `${(OUTLOOK_ANNUAL_INFLATION * 100).toFixed(1)}%`;
+  // Update the explanation alongside the model, including existing encrypted pages.
+  $('.outlook-assumptions label').firstChild.textContent = 'Starting monthly spending ';
+  $('#outlook-caveat').innerHTML = `Spending rises ${inflation} a year. Assumes that growth continues. <br>Excludes taxes &amp; uneven market returns.`;
+  $('.data-explanation p:nth-child(4)').textContent = `The long-range outlook raises starting monthly spending by ${inflation} a year, spread evenly across months. It repeats the past year’s investment growth at a steady monthly rate, with withdrawals at the start of each month. It excludes taxes, new deposits, and uneven market returns.`;
   const input = $('#monthly-spending');
   const result = input.validity.valid && input.value !== '' ? durationMonths(portfolio.total, Number(input.value), portfolio.annualRate) : null;
   const host = $('#outlook-duration');
@@ -145,7 +150,7 @@ function renderOutlook() {
     const years = Math.floor(result.months / 12), months = result.months % 12;
     host.innerHTML = years ? `${years} ${years === 1 ? 'year' : 'years'}${months ? ` <small>${months} mo.</small>` : ''}` : `${months} months`;
   }
-  host.setAttribute('aria-label', !result ? 'Enter a positive spending amount' : result.capped ? 'At least 50 years under this constant-growth assumption' : `Approximately ${result.months} months under this assumption`);
+  host.setAttribute('aria-label', !result ? 'Enter a positive starting spending amount' : result.capped ? `At least 50 years assuming spending rises ${inflation} a year and growth continues` : `Approximately ${result.months} months assuming spending rises ${inflation} a year and growth continues`);
   $('#annual-growth').innerHTML = `${percent(portfolio.annualRate)} <small>/ year</small>`;
 }
 function splitLayout(rows, x, y, width, height) {

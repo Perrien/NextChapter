@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
-import { preparePortfolio, comparePeriod, summarize, durationMonths, milestone } from '../src/portfolio.mjs';
+import { preparePortfolio, comparePeriod, summarize, durationMonths, milestone, OUTLOOK_ANNUAL_INFLATION } from '../src/portfolio.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = name => JSON.parse(fs.readFileSync(path.join(root, name), 'utf8'));
@@ -28,7 +28,7 @@ for (const period of ['today', 'week', 'month', 'year']) {
 // Display totals are rounded to cents; the projection rate retains full precision.
 const yearView = comparePeriod(portfolio, 'year');
 assert.ok(Math.abs(yearView.value - yearView.baseline * (1 + portfolio.annualRate)) < 0.01, 'Annual projection baseline agrees with completed-year view to a cent');
-const report = { checked_at: new Date().toISOString(), source_fetched_at: market.fetched_at, source_close_date: portfolio.commonDate, holdings: positions.length, total: portfolio.total, annual_return: portfolio.annualRate, annual_start: portfolio.annualDate, estimated_holdings: portfolio.rows.filter(row => row.estimated).length, outlook_at_10000_monthly: durationMonths(portfolio.total, 10000, portfolio.annualRate), milestone: milestone(portfolio.total, portfolio.annualRate), periods };
+const report = { checked_at: new Date().toISOString(), source_fetched_at: market.fetched_at, source_close_date: portfolio.commonDate, holdings: positions.length, total: portfolio.total, annual_return: portfolio.annualRate, annual_start: portfolio.annualDate, estimated_holdings: portfolio.rows.filter(row => row.estimated).length, annual_spending_inflation: OUTLOOK_ANNUAL_INFLATION, outlook_at_10000_monthly: durationMonths(portfolio.total, 10000, portfolio.annualRate), milestone: milestone(portfolio.total, portfolio.annualRate), periods };
 fs.mkdirSync(path.join(root, '.local'), { recursive: true });
 fs.writeFileSync(path.join(root, '.local/verification.json'), JSON.stringify(report, null, 2) + '\n');
 console.log(`All ${positions.length} holdings reconcile across owners, sectors, four comparison periods, and history.`);

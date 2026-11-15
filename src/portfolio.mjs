@@ -138,11 +138,15 @@ export function comparePeriod(portfolio, period) {
   const pending = (period === 'week' || period === 'month') && baselineDate === portfolio.asOf;
   return { ...summary, rows, history, baselineDate, endDate: portfolio.asOf, pending };
 }
-export function durationMonths(balance, spending, annualRate, horizon = 600) {
-  if (!Number.isFinite(balance) || balance < 0 || !positive(spending) || !Number.isFinite(annualRate) || annualRate <= -1) return null;
-  const monthly = Math.expm1(Math.log1p(annualRate) / 12);
+export const OUTLOOK_ANNUAL_INFLATION = 0.025;
+export function durationMonths(balance, spending, annualRate, annualInflation = OUTLOOK_ANNUAL_INFLATION, horizon = 600) {
+  if (!Number.isFinite(balance) || balance < 0 || !positive(spending) || !Number.isFinite(annualRate) || annualRate <= -1 || !Number.isFinite(annualInflation) || annualInflation < 0 || !Number.isInteger(horizon) || horizon < 1) return null;
+  // Work in starting-month dollars. Dividing growth by monthly inflation is
+  // equivalent to raising nominal spending by (1 + annualInflation)^(1/12)
+  // after each withdrawal; it also keeps equal growth/inflation rates exact.
+  const monthlyRealGrowth = Math.exp((Math.log1p(annualRate) - Math.log1p(annualInflation)) / 12);
   let months = 0;
-  while (months < horizon && balance >= spending) { balance = (balance - spending) * (1 + monthly); months++; }
+  while (months < horizon && balance >= spending) { balance = (balance - spending) * monthlyRealGrowth; months++; }
   return { months, capped: months === horizon };
 }
 export function milestone(balance, annualRate, step = 100000) {
