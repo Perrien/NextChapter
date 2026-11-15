@@ -149,6 +149,13 @@ export function durationMonths(balance, spending, annualRate, annualInflation = 
   while (months < horizon && balance >= spending) { balance = (balance - spending) * monthlyRealGrowth; months++; }
   return { months, capped: months === horizon };
 }
+export function outlookAgeSubtitle(result, now = Date.now(), birthYear = 1975) {
+  if (!result) return 'Choose a monthly amount';
+  const [year, month] = dateInZone(now, 'America/Chicago').split('-').map(Number);
+  const endYear = year + Math.floor((month - 1 + result.months) / 12);
+  const age = endYear - birthYear;
+  return `${result.capped ? 'Beyond age' : 'To about age'} ${age}`;
+}
 export function milestone(balance, annualRate, step = 100000) {
   if (!positive(balance) || !positive(step)) throw new Error('Invalid milestone value');
   const lower = Math.floor(balance / step) * step;

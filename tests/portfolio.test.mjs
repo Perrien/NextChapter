@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { preparePortfolio, comparePeriod, summarize, durationMonths, milestone, yearBefore, baselineTarget } from '../src/portfolio.mjs';
+import { preparePortfolio, comparePeriod, summarize, durationMonths, outlookAgeSubtitle, milestone, yearBefore, baselineTarget } from '../src/portfolio.mjs';
 
 const definition = { ticker: 'FUND', name: 'Test fund', group: 'domestic', type: 'MUTUALFUND', proxy: 'ETF', proxy_match: 'close' };
 const bars = (first = 9, end = 10) => [
@@ -132,6 +132,15 @@ test('spending outlook rejects invalid inflation and simulation horizons', () =>
   for (const invalid of [NaN, Infinity, -0.025]) assert.equal(durationMonths(100000, 1000, 0.05, invalid), null);
   assert.equal(durationMonths(100000, 1000, 0.05, 0.025, 0), null);
   assert.deepEqual(durationMonths(1000000, 1000, 0.05, 0.025, 12), { months: 12, capped: true });
+});
+test('outlook ages use the projected year and preserve the cap and invalid-input wording', () => {
+  const now = Date.parse('2026-11-15T18:00:00Z');
+  assert.equal(outlookAgeSubtitle({ months: 420, capped: false }, now), 'To about age 86');
+  assert.equal(outlookAgeSubtitle({ months: 600, capped: true }, now), 'Beyond age 101');
+  assert.equal(outlookAgeSubtitle({ months: 6, capped: false }, now), 'To about age 52');
+  assert.equal(outlookAgeSubtitle({ months: 0, capped: false }, now), 'To about age 51');
+  assert.equal(outlookAgeSubtitle({ months: 600, capped: true }, Date.parse('2027-01-01T18:00:00Z')), 'Beyond age 102');
+  assert.equal(outlookAgeSubtitle(null, now), 'Choose a monthly amount');
 });
 test('milestones do not invent a positive pace or show distant arrival dates', () => {
   assert.equal(milestone(1700001, 0).months, null);
