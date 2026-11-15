@@ -38,6 +38,16 @@ Before initial setup, `npm run preview:setup` can display the entry-page design 
 - Share the eventual site link and shared passphrase. There are no separate users, account permissions, or reset emails. Keep your passphrase in a password manager or another place you can find it.
 - To change holdings, edit `../Portfolio.csv` and run `npm run setup:access` again, entering the same passphrase. To change the passphrase, run that command and choose a new one. Saved old keys stop opening the new encrypted page. People with an old downloaded copy can still unlock that old copy; static encryption cannot revoke it.
 
+After changing holdings or the passphrase locally, publish only the newly protected files:
+
+```sh
+git add protected/index.html protected/manifest.json config/access.json
+git commit -m "Update encrypted portfolio"
+git push
+```
+
+That push runs the deployment workflow. Editing the local CSV alone does not change the live site; the CSV stays outside this Git repository. To receive automated price commits before making other changes, use `git pull --ff-only` while the checkout is clean.
+
 The implementation uses pinned [StatiCrypt 3.5.4](https://github.com/robinmoisson/staticrypt), including its unchanged authenticated encryption codec and browser engine, with a custom entry-page template. WebCrypto requires HTTPS or localhost. The salt in `config/access.json` is public and is retained across rebuilds so remembered access survives ordinary holdings updates. It is safe to publish the encrypted `protected/index.html`, its generic manifest, and that public salt. The raw CSV and passphrase must never be published.
 
 ## Refresh prices
