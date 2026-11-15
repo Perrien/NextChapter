@@ -1,0 +1,25 @@
+const paths = {
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    'sun-cloud': '<path d="M12 3V1M4.2 5.2 2.8 3.8M3 12H1m18.2-6.8 1.4-1.4"/><path d="M8.5 15.5a5 5 0 1 1 7-7"/><path d="M9 20a4 4 0 1 1 1-7.9 5 5 0 0 1 9.6 1.8A3.1 3.1 0 1 1 20 20Z"/>',
+    cloud: '<path d="M6 19a5 5 0 1 1 .9-9.9A6.5 6.5 0 0 1 19.4 11 4 4 0 1 1 20 19Z"/>',
+    rain: '<path d="M5 15a4 4 0 1 1 1-7.9A6 6 0 0 1 17.5 9 3.5 3.5 0 1 1 19 15"/><path d="m7 18-1 3m7-3-1 3m7-3-1 3"/>',
+    snow: '<path d="M5 13a4 4 0 1 1 1-7.9A6 6 0 0 1 17.5 7 3.5 3.5 0 1 1 19 13"/><path d="M8 17v5m-2.2-3.8 4.4 2.5m-4.4 0 4.4-2.5M17 17v5m-2.2-3.8 4.4 2.5m-4.4 0 4.4-2.5"/>',
+    storm: '<path d="M5 14a4 4 0 1 1 1-7.9A6 6 0 0 1 17.5 8 3.5 3.5 0 1 1 19 14"/><path d="m13 12-4 6h4l-2 5 7-8h-5l2-3"/>',
+    lock: '<rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/>',
+    'arrow-up-right': '<path d="M6 18 18 6M6 6h12v12"/>',
+    'arrow-down-right': '<path d="m6 6 12 12M6 18h12V6"/>',
+    'arrow-right': '<path d="M4 12h16m-6-6 6 6-6 6"/>',
+    'globe-us': '<circle cx="12" cy="12" r="9"/><path d="m6 5 2 4 4 1-1 4 3 3-1 4M3 12l4 1m9-9-2 5 4 2 3-1"/>',
+    globe: '<circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18M5 6.5h14M5 17.5h14"/>',
+    leaf: '<path d="M20 3C8 1 2 9 5 16c6 5 16-1 15-13Z"/><path d="M3 22 17 8M9 16v-5m0 5h5"/>',
+    flag: '<path d="M5 22V3m0 0c5-4 9 4 14 0v10c-5 4-9-4-14 0"/>',
+    footprints: '<ellipse cx="8" cy="7" rx="3" ry="5" transform="rotate(-20 8 7)"/><ellipse cx="16" cy="16" rx="3" ry="5" transform="rotate(20 16 16)"/><path d="m5 14 1 2m13-9 1-2"/>',
+    telescope: '<path d="m3 9 13-6 4 8-13 6Zm4 8-2 1-3-6 2-1m7 5 1 7m0-7 6 7m-6-7-5 7"/>',
+    grid: '<rect x="3" y="3" width="10" height="11" rx="2"/><rect x="16" y="3" width="5" height="7" rx="1"/><rect x="3" y="17" width="10" height="4" rx="1"/><rect x="16" y="13" width="5" height="8" rx="1"/>',
+    horizon: '<path d="M3 17h18M5 21h14M7 13a5 5 0 0 1 10 0M12 2v3M3 7l2 2m14 0 2-2"/>',
+    info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10h.01"/>',
+    x: '<path d="m6 6 12 12M6 18 18 6"/>',
+    refresh: '<path d="M20 8a8 8 0 0 0-14-3L3 8m0-5v5h5M4 16a8 8 0 0 0 14 3l3-3m0 5v-5h-5"/>',
+    'external-link': '<path d="M14 3h7v7m0-7L10 14M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5"/>'
+  };
+export const icon = name => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || paths.sun}</svg>`;

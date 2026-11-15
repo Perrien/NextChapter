@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#e7ece9">
+  <title>The Next Chapter</title>
+  <meta name="description" content="Your household portfolio, with a little perspective. Prices, growth, and a seasonal view of the journey.">
+  <link rel="stylesheet" href="./styles.css">
+  <!--PRIVATE_HOLDINGS-->
+  <script type="module" src="./app.mjs"></script>
+</head>
+<body data-season="autumn" data-condition="sunny">
+  <div class="preview-bar">
+    <div class="preview-label"><span class="preview-dot"></span><strong>Local development</strong><span class="preview-description" id="snapshot-status">Loading actual Yahoo prices…</span></div>
+    <div class="preview-controls">
+      <label>Season <select id="season"><option value="auto" selected>Automatic</option><option value="spring">Spring</option><option value="summer">Summer</option><option value="autumn">Autumn</option><option value="winter">Winter</option></select></label>
+    </div>
+  </div>
+
+  <div class="page-shell">
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="The Next Chapter home"><span class="brand-symbol" data-icon="sun-cloud"></span><span>The Next Chapter</span></a>
+      <div class="header-right"><span class="header-note">A little perspective.</span><button class="icon-button" id="data-info-button" aria-label="About these numbers" title="About these numbers"><span data-icon="info"></span></button><button class="icon-button" id="lock-button" aria-label="Lock portfolio" title="Lock portfolio"><span data-icon="lock"></span></button></div>
+    </header>
+
+    <main id="top">
+      <p class="data-banner" id="data-banner" role="status">Loading saved prices…</p>
+      <section class="weather-hero" aria-labelledby="portfolio-label">
+        <div class="scene" aria-hidden="true">
+          <div class="sky-haze"></div>
+          <div class="scene-sun"><span></span></div>
+          <div class="scene-cloud cloud-one"></div><div class="scene-cloud cloud-two"></div><div class="scene-cloud cloud-three"></div>
+          <div class="rain"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="snow"><i>✦</i><i>·</i><i>✦</i><i>·</i><i>✦</i><i>·</i><i>✦</i><i>·</i></div>
+          <svg class="landscape" viewBox="0 0 1200 400" preserveAspectRatio="none">
+            <path class="hill-back" d="M0 278 Q160 211 340 272 T740 248 T1200 267 V400 H0Z"/>
+            <path class="hill-mid" d="M0 322 Q240 254 505 324 T950 300 T1200 317 V400 H0Z"/>
+            <path class="hill-front" d="M0 370 Q280 302 570 366 T1200 345 V400 H0Z"/>
+          </svg>
+          <div class="tree tree-left"><span class="tree-crown crown-one"></span><span class="tree-crown crown-two"></span><span class="tree-crown crown-three"></span><span class="tree-trunk"></span></div>
+          <div class="tree tree-right"><span class="tree-crown crown-one"></span><span class="tree-crown crown-two"></span><span class="tree-crown crown-three"></span><span class="tree-trunk"></span></div>
+          <div class="scene-leaf leaf-one"></div><div class="scene-leaf leaf-two"></div><div class="scene-leaf leaf-three"></div>
+        </div>
+        <div class="hero-content">
+          <p class="eyebrow" id="portfolio-label">KIM &amp; ASHLEY’S PORTFOLIO</p>
+          <h1 id="household-value">—</h1>
+          <p class="value-caption" id="value-caption">Latest portfolio value</p>
+          <div class="hero-change"><span class="change-arrow" id="hero-arrow" data-icon="arrow-up-right"></span><span id="household-change">—</span><span class="hero-percent" id="household-percent">—</span><span class="period-word" id="hero-period">this month</span></div>
+          <h2 class="weather-description" id="weather-description">A little perspective.</h2>
+          <p class="weather-message" id="weather-message">Loading your portfolio weather…</p>
+          <div class="period-picker" role="group" aria-label="Comparison period">
+            <button type="button" data-period="today" aria-pressed="false">Today</button>
+            <button type="button" data-period="week" aria-pressed="false">This week</button>
+            <button type="button" data-period="month" aria-pressed="true">This month</button>
+            <button type="button" data-period="year" aria-pressed="false">Past year</button>
+          </div>
+          <p class="hero-footnote" id="hero-source">Loading source dates…</p>
+        </div>
+        <span class="season-signature" id="season-signature">THE AUTUMN EDITION</span>
+      </section>
+
+      <div class="section-heading"><div><span class="small-sun" data-icon="sun"></span><h2>Around your portfolio</h2></div><span id="section-period">This month at a glance</span></div>
+      <div class="dashboard-grid">
+        <article class="weather-card market-card" data-group="domestic">
+          <div class="card-heading"><span class="card-label"><span data-icon="globe-us"></span>Domestic</span><span class="condition-label" data-group-condition="domestic">Clear skies</span></div>
+          <div class="market-main"><div><p class="card-value" data-group-value="domestic">—</p><p class="card-delta" data-group-change="domestic">—</p></div><span class="weather-glyph" data-group-icon="domestic"></span></div>
+          <p class="card-bottom">Your US investments <span class="return-pill" data-group-return="domestic">—</span></p>
+        </article>
+        <article class="weather-card market-card" data-group="international">
+          <div class="card-heading"><span class="card-label"><span data-icon="globe"></span>International</span><span class="condition-label" data-group-condition="international">Clear skies</span></div>
+          <div class="market-main"><div><p class="card-value" data-group-value="international">—</p><p class="card-delta" data-group-change="international">—</p></div><span class="weather-glyph" data-group-icon="international"></span></div>
+          <p class="card-bottom">Your investments abroad <span class="return-pill" data-group-return="international">—</span></p>
+        </article>
+        <article class="weather-card market-card" data-group="bonds">
+          <div class="card-heading"><span class="card-label"><span data-icon="leaf"></span>Bonds</span><span class="condition-label" data-group-condition="bonds">A little drizzle</span></div>
+          <div class="market-main"><div><p class="card-value" data-group-value="bonds">—</p><p class="card-delta" data-group-change="bonds">—</p></div><span class="weather-glyph" data-group-icon="bonds"></span></div>
+          <p class="card-bottom">The quieter corner <span class="return-pill" data-group-return="bonds">—</span></p>
+        </article>
+
+        <article class="weather-card person-card" aria-labelledby="owner-title">
+          <div class="owner-card-header">
+            <div class="person-heading"><span class="person-avatar" id="owner-avatar" aria-hidden="true">K+A</span><div><h3 id="owner-title">Joint portfolio</h3><p id="owner-value-caption">Latest portfolio value</p></div></div>
+            <div class="owner-picker" role="group" aria-label="Portfolio view">
+              <button type="button" data-owner="Joint" aria-pressed="true">Joint</button>
+              <button type="button" data-owner="Kim" aria-pressed="false">Kim</button>
+              <button type="button" data-owner="Ashley" aria-pressed="false">Ashley</button>
+            </div>
+          </div>
+          <div class="person-numbers" aria-live="polite" aria-atomic="true"><p class="card-value" id="owner-value">—</p><div class="owner-change"><p class="person-change" id="owner-change">—</p><p class="person-return" id="owner-return">—</p></div><div class="person-weather"><span id="owner-weather-icon"></span><span class="owner-condition" id="owner-condition">Clear skies</span></div></div>
+          <div class="person-bottom"><span id="owner-message">A little more room to dream.</span><span id="owner-count">15 holdings · Kim &amp; Ashley</span></div>
+        </article>
+
+        <article class="weather-card milestone-card">
+          <div class="card-heading"><h3 class="card-label"><span data-icon="flag"></span>The next little summit</h3><span class="subtle-label">MILESTONE</span></div>
+          <div class="milestone-main"><div><p class="milestone-target" id="milestone-target">—</p><p class="muted"><strong id="milestone-gap">—</strong> to go</p></div><span class="summit-drawing" aria-hidden="true"><svg viewBox="0 0 140 90"><path d="M8 78 46 32 74 64 99 18 134 78" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="m87 34 12-16 12 21-12-6Z" fill="currentColor" opacity=".15"/><path d="M99 18V4m0 0 17 4-17 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span></div>
+          <div class="milestone-track" id="milestone-track" role="progressbar" aria-label="Milestone progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="44"><span id="milestone-fill"></span><i id="milestone-marker"></i></div>
+          <div class="milestone-labels"><span id="milestone-start">—m</span><span id="milestone-end">—m</span></div>
+          <p class="pace-note"><span data-icon="footprints"></span><span id="milestone-pace">Loading the past year’s growth…</span></p>
+        </article>
+
+        <article class="weather-card outlook-card">
+          <div class="card-heading"><h3 class="card-label"><span data-icon="telescope"></span>The long-range outlook</h3><span class="subtle-label">WHAT IF?</span></div>
+          <div class="outlook-main"><div><p class="outlook-duration" id="outlook-duration">—</p><p class="outlook-subtitle">of spending, in this scenario</p></div><span class="outlook-orbit" aria-hidden="true"><span></span><i></i></span></div>
+          <div class="outlook-assumptions"><label for="monthly-spending">Monthly spending <span class="spending-input"><span>$</span><input id="monthly-spending" type="number" value="10000" min="1" max="1000000" step="any" inputmode="numeric" aria-describedby="outlook-caveat"></span></label><div><span>Past year’s growth</span><strong id="annual-growth">—</strong></div></div>
+          <p class="outlook-caveat" id="outlook-caveat">Fixed spending. Assumes that growth continues. <br>Excludes taxes, inflation &amp; uneven market returns.</p>
+        </article>
+
+        <article class="weather-card holdings-card">
+          <div class="card-heading"><div><h3 class="card-label"><span data-icon="grid"></span>Your portfolio landscape</h3><p class="card-intro">The whole picture, one little patch at a time.</p></div><span class="subtle-label">15 HOLDINGS</span></div>
+          <div class="treemap" id="treemap" aria-label="Holdings heat map. Tile area represents current value; labels show selected-period price change."></div>
+          <div class="heatmap-footer"><span>Size = value <span class="legend-divider">·</span> Tap a holding for details</span><span class="heatmap-legend"><i class="loss-swatch"></i>Down <i class="gain-swatch"></i>Up</span></div>
+        </article>
+
+        <article class="weather-card history-card">
+          <div class="card-heading"><h3 class="card-label"><span data-icon="horizon"></span>Growth over time</h3></div>
+          <p class="history-delta" id="history-delta">—</p><p class="history-subtitle" id="history-subtitle">since the start of this month</p>
+          <div class="history-chart" id="history-chart"></div>
+          <div class="history-dates"><span id="history-start">Oct 30</span><span id="history-end">Nov 13</span></div>
+          <p class="history-note">Current holdings, with payouts reinvested.<br><span id="history-price-note">Growth history, not actual past balances.</span></p>
+        </article>
+      </div>
+      <p class="page-note"><span data-icon="info"></span>Market cards group your investments. The portfolio selector lets you see Joint, Kim, or Ashley.</p>
+      <details class="data-tools" id="data-tools">
+        <summary><span data-icon="refresh"></span>Data &amp; updates</summary>
+        <div class="data-tools-panel">
+          <div><h2>A fresh perspective.</h2><p>See when these prices were collected.</p><dl><div><dt>Published closes through</dt><dd id="close-date">—</dd></div><div><dt>Snapshot downloaded</dt><dd id="download-date">—</dd></div><div><dt>Automatic updates</dt><dd>Connected at launch</dd></div></dl></div>
+          <div class="data-tools-action"><button class="update-prices-button" id="reload-data-button" type="button">Reload saved prices <span data-icon="refresh"></span></button><p class="data-tools-explanation">Checks for a newer saved snapshot. GitHub downloads and scheduled updates will be connected at launch.</p><p class="data-tools-status" id="manual-update-status" role="status" aria-live="polite">Real prices. Local development build.</p></div>
+        </div>
+      </details>
+      <footer class="site-footer"><span>Made for a little perspective.</span><span>Actual Yahoo prices <span>·</span> Encrypted shared access <span>·</span> Local preview</span></footer>
+    </main>
+  </div>
+
+  <div class="sr-only" id="period-announcement" role="status" aria-live="polite"></div>
+
+  <dialog id="holding-dialog" class="detail-dialog" aria-labelledby="holding-name">
+    <button class="dialog-close icon-button" type="button" data-close-dialog aria-label="Close holding details"><span data-icon="x"></span></button>
+    <span class="dialog-kicker" id="holding-ticker">HOLDING</span><h2 id="holding-name">Holding details</h2>
+    <p class="detail-value" id="holding-value">—</p><p class="detail-change" id="holding-change">—</p>
+    <dl><div><dt>Owner</dt><dd id="holding-owner">—</dd></div><div><dt>Shares</dt><dd id="holding-shares">—</dd></div><div><dt>Share price</dt><dd id="holding-price">—</dd></div><div><dt>Investment group</dt><dd id="holding-group">—</dd></div></dl>
+    <div id="small-holdings-list"></div>
+    <p class="dialog-note"><span id="holding-price-note"></span><br><a id="holding-source" target="_blank" rel="noopener noreferrer">Fund information</a></p>
+  </dialog>
+
+  <dialog id="data-dialog" class="detail-dialog" aria-labelledby="data-title">
+    <button class="dialog-close icon-button" type="button" data-close-dialog aria-label="Close data explanation"><span data-icon="x"></span></button>
+    <span class="dialog-kicker">A LITTLE CONTEXT</span><h2 id="data-title">About these numbers</h2>
+    <div class="data-explanation"><p>Current value is your share count multiplied by each investment’s latest published price, or an explicitly labeled intraday estimate.</p><p>Changes and growth history use adjusted prices, assume today’s holdings throughout, and assume payouts are reinvested. The history is scaled to today’s value; it does not reconstruct your actual past account balances.</p><p>Mutual funds publish a daily price. Between closes, a related ETF supplies an estimate. Active funds can differ from their proxy; individual holding details explain the match.</p><p>The long-range outlook repeats the past year’s growth at a steady monthly rate, with withdrawals at the start of each month. It excludes inflation, taxes, new deposits, and uneven market returns.</p><p id="annual-period-note"></p></div>
+  </dialog>
+</body>
+</html>

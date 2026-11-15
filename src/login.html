@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#e7ece9">
+  <meta name="referrer" content="no-referrer">
+  <title>The Next Chapter</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body class="login-page">
+  <div class="login-landscape" aria-hidden="true"><span class="login-sun"></span><span class="login-hill hill-far"></span><span class="login-hill hill-near"></span></div>
+  <main class="login-shell">
+    <a class="brand login-brand" href="./"><span aria-hidden="true">☀</span><span>The Next Chapter</span></a>
+    <section class="login-card" aria-labelledby="login-title">
+      <svg class="login-emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3V1M4.2 5.2 2.8 3.8M3 12H1m18.2-6.8 1.4-1.4M8.5 15.5a5 5 0 1 1 7-7"/><path d="M9 20a4 4 0 1 1 1-7.9 5 5 0 0 1 9.6 1.8A3.1 3.1 0 1 1 20 20Z"/></svg>
+      <p class="dialog-kicker">A LITTLE PERSPECTIVE</p>
+      <h1 id="login-title">Come on in.</h1>
+      <p class="login-intro">Your little corner of the forecast.</p>
+      <p id="login-loading" class="login-status" role="status">Getting things ready…</p>
+      <form id="login-form" hidden>
+        <label for="passphrase">Shared passphrase</label>
+        <div class="login-password"><input id="passphrase" type="password" autocomplete="current-password" required aria-describedby="login-error"><button type="button" id="show-passphrase" aria-label="Show passphrase" aria-pressed="false">Show</button></div>
+        <label class="remember-label"><input id="remember-device" type="checkbox" aria-describedby="remember-note">Remember this device for 30 days</label>
+        <p id="remember-note" class="login-hint">Saves an unlock key in this browser. Use on your own device.</p>
+        <p id="login-error" class="login-error" role="alert" hidden></p>
+        <button type="submit" class="access-submit" id="unlock-button">A little perspective <span aria-hidden="true">→</span></button>
+      </form>
+      <p class="login-footnote">One shared passphrase. No account to create.</p>
+      <noscript><p class="login-error">Please enable JavaScript to unlock this page.</p></noscript>
+    </section>
+    <p class="login-signoff">Made for the life you’re building.</p>
+  </main>
+  <script>
+    const initiator = /*[|js_staticrypt|]*/0;
+    const config = /*[|staticrypt_config|]*/0;
+    const storagePrefix = /*[|storage_prefix|]*/0;
+    const field = document.getElementById('passphrase');
+    const form = document.getElementById('login-form');
+    const loading = document.getElementById('login-loading');
+    const error = document.getElementById('login-error');
+    const submit = document.getElementById('unlock-button');
+    const remember = document.getElementById('remember-device');
+    let engine;
+    function showError(message) { error.textContent = message; error.hidden = false; }
+    function forget() {
+      for (const suffix of ['key', 'expires']) {
+        try { localStorage.removeItem(storagePrefix + suffix); } catch (_) {}
+      }
+    }
+    function showForm() {
+      loading.hidden = true;
+      form.hidden = false;
+      field.focus();
+    }
+    async function begin() {
+      if (!config) {
+        loading.textContent = 'One small setup step: choose your shared passphrase locally. Run npm run setup:access in the next-chapter folder, then reload this page.';
+        return;
+      }
+      if (!window.crypto?.subtle) {
+        loading.textContent = 'Unlocking needs HTTPS or localhost. Please open the secure site address.';
+        return;
+      }
+      let storageAvailable = true;
+      try { localStorage.setItem(storagePrefix + 'check', '1'); localStorage.removeItem(storagePrefix + 'check'); }
+      catch (_) { storageAvailable = false; remember.disabled = true; document.getElementById('remember-note').textContent = 'This browser cannot save an unlock key. You can still unlock for this visit.'; }
+      engine = initiator.init(config, {
+        rememberExpirationKey: storagePrefix + 'expires', rememberPassphraseKey: storagePrefix + 'key',
+        // Explicitly replace even when remembered access finishes before parsing ends.
+        replaceHtmlCallback: html => { document.open(); document.write(html); document.close(); },
+        clearLocalStorageCallback: forget
+      });
+      // Never accept unlock keys in a URL; unlock stays in the form or local storage.
+      const url = new URL(location.href);
+      const logout = url.searchParams.has('staticrypt_logout') || url.hash.includes('staticrypt_logout');
+      url.searchParams.delete('staticrypt_pwd'); url.searchParams.delete('remember_me');
+      if (url.hash.includes('staticrypt_pwd') || logout) url.hash = '';
+      url.searchParams.delete('staticrypt_logout');
+      history.replaceState(null, '', url.href);
+      if (logout) forget();
+      else if (storageAvailable) {
+        // Missing/corrupted expiration must not turn a saved key into indefinite access.
+        const expiry = Number(localStorage.getItem(storagePrefix + 'expires'));
+        if (!Number.isFinite(expiry) || expiry <= Date.now()) forget();
+        try { if ((await engine.handleDecryptOnLoad()).isSuccessful) return; }
+        catch (_) { forget(); }
+      }
+      showForm();
+    }
+    document.getElementById('show-passphrase').addEventListener('click', event => {
+      const visible = field.type === 'password';
+      field.type = visible ? 'text' : 'password';
+      event.currentTarget.textContent = visible ? 'Hide' : 'Show';
+      event.currentTarget.setAttribute('aria-label', visible ? 'Hide passphrase' : 'Show passphrase');
+      event.currentTarget.setAttribute('aria-pressed', String(visible));
+    });
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      if (!engine || submit.disabled) return;
+      submit.disabled = true; submit.textContent = 'Opening your forecast…'; error.hidden = true;
+      try {
+        if (!remember.checked) forget();
+        const result = await engine.handleDecryptionOfPage(field.value, remember.checked);
+        if (!result.isSuccessful) {
+          showError('That passphrase didn’t open the door. Please try again.');
+          field.focus(); field.select();
+        }
+      } catch (_) { showError('Couldn’t unlock right now. Please try again with Remember this device turned off.'); }
+      finally { submit.disabled = false; submit.innerHTML = 'A little perspective <span aria-hidden="true">→</span>'; }
+    });
+    // Wait for the document to finish parsing before replacing it on auto-unlock.
+    window.addEventListener('load', () => {
+      begin().catch(() => { loading.textContent = 'Couldn’t get the unlock screen ready. Please reload and try again.'; });
+    }, { once: true });
+  </script>
+</body>
+</html>
