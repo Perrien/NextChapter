@@ -5,7 +5,9 @@ on:
     branches: [main]
   workflow_dispatch:
   schedule:
-    - cron: '15 11,14,21 * * 1-5'
+    # A second attempt catches a delayed/dropped primary timer event. The gate
+    # below skips a slot that already has a successfully published price snapshot.
+    - cron: '15,45 11,14,21 * * 1-5'
       timezone: America/Chicago
 
 permissions:
@@ -16,8 +18,23 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publish:
+  refresh-check:
     if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      should_run: ${{ steps.due.outputs.should_run }}
+    steps:
+      - name: Check out current main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+      - name: Check whether this refresh slot is still due
+        id: due
+        run: python3 scripts/refresh_due.py
+  publish:
+    needs: refresh-check
+    if: github.ref == 'refs/heads/main' && needs.refresh-check.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
