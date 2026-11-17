@@ -77,11 +77,22 @@ body[data-season="winter"] .season-signature { color: #6d868a; }
 body[data-condition="cloudy"] .weather-hero, body[data-condition="rainy"] .weather-hero { --sky-top: #bfcfd1; --sky-bottom: #e2e1ce; }
 body[data-condition="cloudy"] .scene-sun, body[data-condition="rainy"] .scene-sun { opacity: .45; }
 body[data-condition="cloudy"] .scene-cloud, body[data-condition="rainy"] .scene-cloud { background: #edf1e8; transform: scale(1.3); opacity: .9; }
+body[data-condition="rainy"] .weather-hero { --sky-top: #9bafb9; --sky-bottom: #cbd5d3; --hero-ink: #203b43; }
+body[data-condition="rainy"] .sky-haze { opacity: .12; }
+body[data-condition="rainy"] .scene-sun { opacity: .07; box-shadow: none; }
+body[data-condition="rainy"] .scene-cloud { background: #9aadb6; opacity: .96; transform: scale(2.2); animation: none; }
+body[data-condition="rainy"] .cloud-one { left: 10%; top: 100px; }
+body[data-condition="rainy"] .cloud-two { right: 9%; top: 115px; transform: scale(2.6); }
+body[data-condition="rainy"] .cloud-three { left: 43%; top: 29px; transform: scale(2.5); background: #8fa4af; }
+@media (max-width: 600px) { body[data-condition="rainy"] .cloud-one { left: 2%; top: 83px; transform: scale(1.6); }body[data-condition="rainy"] .cloud-two { right: 3%; top: 112px; transform: scale(1.9); }body[data-condition="rainy"] .cloud-three { left: 37%; top: 21px; transform: scale(1.8); } }
+body[data-condition="rainy"] .rain, body[data-condition="storm"] .rain { z-index: 1; opacity: .85; mask-image: linear-gradient(90deg,#000 15%,#0005 42%,#0005 58%,#000 85%); }
+body[data-condition="rainy"] .rain i, body[data-condition="storm"] .rain i { width: 2px; height: 30px; border-radius: 3px; background: #456c82; box-shadow: 65px 92px 0 #456c82b0, -80px 166px 0 #456c82b0, 24px 258px 0 #456c8290; }
 body[data-condition="storm"] .weather-hero { --sky-top: #536b77; --sky-bottom: #a4b6b1; --hill-back: #84998e; --hill-mid: #748d80; --hill-front: #5a786a; --hero-ink: #fffcef; }
 body[data-condition="storm"] .sky-haze { opacity: .12; }
 body[data-condition="storm"] .scene-cloud { background: #8296a0; opacity: .85; transform: scale(1.55); }
 body[data-condition="storm"] .scene-sun { opacity: .12; }
 body[data-condition="storm"] .rain, body[data-condition="rainy"] .rain { display: block; }
+body[data-condition="storm"] .rain i { height: 38px; background: #d3e5e8; box-shadow: 65px 92px 0 #d3e5e8c0, -80px 166px 0 #d3e5e8c0, 24px 258px 0 #d3e5e8b0; }
 body[data-season="winter"][data-condition="storm"] .weather-hero { --sky-top: #627987; --sky-bottom: #a8bdc6; --hill-back: #8fa7b0; --hill-mid: #b0c3c9; --hill-front: #d1e0e1; }
 body[data-season="winter"][data-condition="storm"] .rain, body[data-season="winter"][data-condition="rainy"] .rain { display: none; }
 body[data-season="winter"][data-condition="storm"] .snow, body[data-season="winter"][data-condition="rainy"] .snow { display: block; }
