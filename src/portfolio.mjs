@@ -139,14 +139,25 @@ export function comparePeriod(portfolio, period) {
   return { ...summary, rows, history, baselineDate, endDate: portfolio.asOf, pending };
 }
 export const OUTLOOK_ANNUAL_INFLATION = 0.025;
-export function durationMonths(balance, spending, annualRate, annualInflation = OUTLOOK_ANNUAL_INFLATION, horizon = 600) {
-  if (!Number.isFinite(balance) || balance < 0 || !positive(spending) || !Number.isFinite(annualRate) || annualRate <= -1 || !Number.isFinite(annualInflation) || annualInflation < 0 || !Number.isInteger(horizon) || horizon < 1) return null;
+export function healthcareMonthsRemaining(now = Date.now(), birthYear = 1975) {
+  const [year, month] = dateInZone(now, 'America/Chicago').split('-').map(Number);
+  // Like the age subtitle, use calendar years rather than unknown birthdays.
+  return Math.max(0, (birthYear + 65 - year) * 12 - (month - 1));
+}
+export function durationMonths(balance, spending, annualRate, annualInflation = OUTLOOK_ANNUAL_INFLATION, horizon = 600, { healthcare = 0, healthcareMonths = 0, taxRate = 0 } = {}) {
+  if (!Number.isFinite(balance) || balance < 0 || !positive(spending) || !Number.isFinite(annualRate) || annualRate <= -1 || !Number.isFinite(annualInflation) || annualInflation < 0 || !Number.isInteger(horizon) || horizon < 1 || !Number.isFinite(healthcare) || healthcare < 0 || !Number.isInteger(healthcareMonths) || healthcareMonths < 0 || !Number.isFinite(taxRate) || taxRate < 0 || taxRate >= 1) return null;
   // Work in starting-month dollars. Dividing growth by monthly inflation is
   // equivalent to raising nominal spending by (1 + annualInflation)^(1/12)
   // after each withdrawal; it also keeps equal growth/inflation rates exact.
   const monthlyRealGrowth = Math.exp((Math.log1p(annualRate) - Math.log1p(annualInflation)) / 12);
   let months = 0;
-  while (months < horizon && balance >= spending) { balance = (balance - spending) * monthlyRealGrowth; months++; }
+  while (months < horizon) {
+    // Gross up the full cost so the after-tax withdrawal covers both expenses.
+    const withdrawal = (spending + (months < healthcareMonths ? healthcare : 0)) / (1 - taxRate);
+    if (balance < withdrawal) break;
+    balance = (balance - withdrawal) * monthlyRealGrowth;
+    months++;
+  }
   return { months, capped: months === horizon };
 }
 export function outlookAgeSubtitle(result, now = Date.now(), birthYear = 1975) {

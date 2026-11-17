@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { preparePortfolio, comparePeriod, summarize, durationMonths, outlookAgeSubtitle, milestone, yearBefore, baselineTarget } from '../src/portfolio.mjs';
+import { preparePortfolio, comparePeriod, summarize, durationMonths, outlookAgeSubtitle, healthcareMonthsRemaining, milestone, yearBefore, baselineTarget } from '../src/portfolio.mjs';
 
 const definition = { ticker: 'FUND', name: 'Test fund', group: 'domestic', type: 'MUTUALFUND', proxy: 'ETF', proxy_match: 'close' };
 const bars = (first = 9, end = 10) => [
@@ -132,6 +132,42 @@ test('spending outlook rejects invalid inflation and simulation horizons', () =>
   for (const invalid of [NaN, Infinity, -0.025]) assert.equal(durationMonths(100000, 1000, 0.05, invalid), null);
   assert.equal(durationMonths(100000, 1000, 0.05, 0.025, 0), null);
   assert.deepEqual(durationMonths(1000000, 1000, 0.05, 0.025, 12), { months: 12, capped: true });
+});
+test('effective tax grosses up withdrawals to leave enough for net spending', () => {
+  const options = { taxRate: 0.1 };
+  assert.deepEqual(durationMonths(120000, 9000, 0, 0, 600, options), { months: 12, capped: false });
+  assert.equal(durationMonths(9999, 9000, 0, 0, 600, options).months, 0);
+  assert.equal(durationMonths(120000, 9000, 0, 0).months, 13);
+});
+test('healthcare stops at the cutoff and zero healthcare preserves the old scenario', () => {
+  // Two payments of (900 + 900) / .9, then ten of 900 / .9.
+  const options = { healthcare: 900, healthcareMonths: 2, taxRate: 0.1 };
+  assert.deepEqual(durationMonths(14000, 900, 0, 0, 600, options), { months: 12, capped: false });
+  assert.equal(durationMonths(14000, 900, 0, 0, 600, { ...options, healthcareMonths: 0 }).months, 14);
+  assert.deepEqual(durationMonths(1500000, 10000, 0.058, 0.025, 600, { healthcare: 0, healthcareMonths: 158 }), durationMonths(1500000, 10000, 0.058));
+});
+test('inflation, healthcare cutoff, and tax match nominal monthly cash flows', () => {
+  const startingBalance = 500000, spending = 6000, healthcare = 1500, taxRate = 0.1, healthcareMonths = 24;
+  const growth = Math.pow(1.058, 1 / 12), inflation = Math.pow(1.025, 1 / 12);
+  let balance = startingBalance, months = 0;
+  while (months < 600) {
+    const cost = (spending + (months < healthcareMonths ? healthcare : 0)) * Math.pow(inflation, months) / (1 - taxRate);
+    if (balance < cost) break;
+    balance = (balance - cost) * growth;
+    months++;
+  }
+  assert.deepEqual(durationMonths(startingBalance, spending, 0.058, 0.025, 600, { healthcare, healthcareMonths, taxRate }), { months, capped: false });
+});
+test('healthcare ends in the calendar year of age 65, using Central time', () => {
+  assert.equal(healthcareMonthsRemaining(Date.parse('2026-11-17T18:00:00Z')), 158);
+  assert.equal(healthcareMonthsRemaining(Date.parse('2040-01-01T05:59:59Z')), 1);
+  assert.equal(healthcareMonthsRemaining(Date.parse('2040-01-01T06:00:00Z')), 0);
+  assert.equal(healthcareMonthsRemaining(Date.parse('2045-07-01T18:00:00Z')), 0);
+});
+test('outlook rejects invalid tax and healthcare assumptions', () => {
+  for (const taxRate of [-0.01, 1, NaN, Infinity]) assert.equal(durationMonths(100000, 1000, 0.05, 0.025, 600, { taxRate }), null);
+  for (const healthcare of [-1, NaN, Infinity]) assert.equal(durationMonths(100000, 1000, 0.05, 0.025, 600, { healthcare }), null);
+  for (const healthcareMonths of [-1, 1.5, NaN, Infinity]) assert.equal(durationMonths(100000, 1000, 0.05, 0.025, 600, { healthcareMonths }), null);
 });
 test('outlook ages use the projected year and preserve the cap and invalid-input wording', () => {
   const now = Date.parse('2026-11-15T18:00:00Z');

@@ -1,4 +1,4 @@
-import { preparePortfolio, comparePeriod, summarize, durationMonths, outlookAgeSubtitle, milestone, dateInZone, OUTLOOK_ANNUAL_INFLATION } from './portfolio.mjs';
+import { preparePortfolio, comparePeriod, summarize, durationMonths, outlookAgeSubtitle, healthcareMonthsRemaining, milestone, dateInZone, OUTLOOK_ANNUAL_INFLATION } from './portfolio.mjs';
 import { icon } from './icons.mjs';
 
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -36,53 +36,82 @@ const publicationRow = document.createElement('div');
 publicationRow.innerHTML = '<dt>Site snapshot published</dt><dd id="publication-date">—</dd>';
 $('.data-tools dl').append(publicationRow);
 
-const spendingInput = $('#monthly-spending');
-spendingInput.type = 'text';
-spendingInput.inputMode = 'decimal';
-spendingInput.setAttribute('role', 'spinbutton');
-spendingInput.setAttribute('aria-label', 'Starting monthly spending in dollars');
-spendingInput.setAttribute('aria-valuemin', '1');
-spendingInput.setAttribute('aria-valuemax', '1000000');
-spendingInput.step = '500';
-const spendingStepper = document.createElement('span');
-spendingStepper.className = 'spending-stepper';
-spendingStepper.innerHTML = '<button type="button" data-spending-step="1" aria-label="Increase monthly spending by $500" disabled><span aria-hidden="true">▴</span></button><button type="button" data-spending-step="-1" aria-label="Decrease monthly spending by $500" disabled><span aria-hidden="true">▾</span></button>';
-spendingInput.parentElement.append(spendingStepper);
-function spendingAmount() {
-  const raw = spendingInput.value.replaceAll(',', '').trim();
-  if (!/^\d+(?:\.\d{0,2})?$/.test(raw)) return null;
-  const value = Number(raw);
-  return value >= 1 && value <= 1000000 ? value : null;
-}
-function formatSpendingEditor() {
-  const raw = spendingInput.value;
-  const plain = raw.replaceAll(',', '');
-  if (!/^\d*(?:\.\d{0,2})?$/.test(plain)) return;
-  const beforeCaret = raw.slice(0, spendingInput.selectionStart ?? raw.length).replaceAll(',', '').length;
-  const [whole, fraction] = plain.split('.');
-  const formatted = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (fraction === undefined ? '' : '.' + fraction);
-  spendingInput.value = formatted;
-  let caret = 0, characters = 0;
-  while (caret < formatted.length && characters < beforeCaret) { if (formatted[caret] !== ',') characters++; caret++; }
-  if (document.activeElement === spendingInput) spendingInput.setSelectionRange(caret, caret);
-}
-function stepSpending(direction) {
-  if (!portfolio) return;
-  const value = Math.min(1000000, Math.max(1, Math.round(((spendingAmount() ?? 0) + direction * 500) * 100) / 100));
-  spendingInput.value = value.toLocaleString('en-US', { maximumFractionDigits: 2 });
-  renderOutlook();
-}
-formatSpendingEditor();
-$$('[data-spending-step]').forEach(button => button.addEventListener('click', () => stepSpending(Number(button.dataset.spendingStep))));
-spendingInput.addEventListener('keydown', event => {
-  if (!event.ctrlKey && !event.metaKey && !event.altKey && ['ArrowUp', 'ArrowDown'].includes(event.key)) {
-    event.preventDefault(); stepSpending(event.key === 'ArrowUp' ? 1 : -1);
+// Keep scenario controls in generic assets so the encrypted page stays usable.
+const growthAssumption = $('#annual-growth').parentElement;
+const healthcareLabel = document.createElement('label');
+healthcareLabel.htmlFor = 'monthly-healthcare';
+healthcareLabel.innerHTML = '<span>Healthcare / month</span><span class="spending-input"><span>$</span><input id="monthly-healthcare" value="1500" aria-describedby="healthcare-note outlook-caveat"></span><small id="healthcare-note">Extra until age 65 · 2040</small>';
+const taxLabel = document.createElement('label');
+taxLabel.htmlFor = 'effective-tax-rate';
+taxLabel.innerHTML = '<span>Effective tax rate</span><span class="spending-input tax-input"><input id="effective-tax-rate" value="10" aria-describedby="outlook-caveat"><span>%</span></span>';
+growthAssumption.before(healthcareLabel, taxLabel);
+$('.outlook-assumptions label').firstChild.textContent = 'Starting monthly spending ';
+
+function numberEditor(input, { min, max, step, name, stepLabel, currency = false }) {
+  input.type = 'text';
+  input.inputMode = 'decimal';
+  input.dataset.outlookInput = '';
+  input.setAttribute('role', 'spinbutton');
+  input.setAttribute('aria-label', name);
+  input.setAttribute('aria-valuemin', String(min));
+  input.setAttribute('aria-valuemax', String(max));
+  input.step = String(step);
+  const stepper = document.createElement('span');
+  stepper.className = 'spending-stepper';
+  stepper.innerHTML = `<button type="button" data-outlook-step="1" aria-label="Increase ${stepLabel}" disabled><span aria-hidden="true">▴</span></button><button type="button" data-outlook-step="-1" aria-label="Decrease ${stepLabel}" disabled><span aria-hidden="true">▾</span></button>`;
+  input.parentElement.append(stepper);
+  function value() {
+    const raw = input.value.replaceAll(',', '').trim();
+    if (!/^\d+(?:\.\d{0,2})?$/.test(raw)) return null;
+    const amount = Number(raw);
+    return amount >= min && amount <= max ? amount : null;
   }
-});
-spendingInput.addEventListener('blur', () => {
-  const value = spendingAmount();
-  if (value !== null) spendingInput.value = value.toLocaleString('en-US', { maximumFractionDigits: 2 });
-});
+  function formatEditor() {
+    const raw = input.value;
+    const plain = raw.replaceAll(',', '');
+    if (!/^\d*(?:\.\d{0,2})?$/.test(plain)) return;
+    const beforeCaret = raw.slice(0, input.selectionStart ?? raw.length).replaceAll(',', '').length;
+    const [whole, fraction] = plain.split('.');
+    const formatted = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (fraction === undefined ? '' : '.' + fraction);
+    input.value = formatted;
+    let caret = 0, characters = 0;
+    while (caret < formatted.length && characters < beforeCaret) { if (formatted[caret] !== ',') characters++; caret++; }
+    if (document.activeElement === input) input.setSelectionRange(caret, caret);
+  }
+  function change(direction) {
+    if (!portfolio) return;
+    const amount = Math.min(max, Math.max(min, Math.round(((value() ?? min) + direction * step) * 100) / 100));
+    input.value = amount.toLocaleString('en-US', { maximumFractionDigits: 2 });
+    renderOutlook();
+  }
+  function sync() {
+    const amount = value();
+    input.setCustomValidity(amount === null && input.value !== '' ? `Enter a value from ${min.toLocaleString('en-US')} to ${max.toLocaleString('en-US')}.` : '');
+    input.setAttribute('aria-invalid', String(amount === null && input.value !== ''));
+    if (amount !== null) {
+      input.setAttribute('aria-valuenow', String(amount));
+      input.setAttribute('aria-valuetext', currency ? amount.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }) : `${amount}%`);
+    } else { input.removeAttribute('aria-valuenow'); input.removeAttribute('aria-valuetext'); }
+    $$('[data-outlook-step]', stepper).forEach(button => { button.disabled = !portfolio || (amount !== null && (Number(button.dataset.outlookStep) > 0 ? amount >= max : amount <= min)); });
+    return amount;
+  }
+  formatEditor();
+  $$('[data-outlook-step]', stepper).forEach(button => button.addEventListener('click', () => change(Number(button.dataset.outlookStep))));
+  input.addEventListener('keydown', event => {
+    if (!event.ctrlKey && !event.metaKey && !event.altKey && ['ArrowUp', 'ArrowDown'].includes(event.key)) {
+      event.preventDefault(); change(event.key === 'ArrowUp' ? 1 : -1);
+    }
+  });
+  input.addEventListener('input', () => { formatEditor(); renderOutlook(); });
+  input.addEventListener('blur', () => {
+    const amount = value();
+    if (amount !== null) input.value = amount.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  });
+  return { sync };
+}
+const spendingEditor = numberEditor($('#monthly-spending'), { min: 1, max: 1000000, step: 500, name: 'Starting monthly spending in dollars', stepLabel: 'monthly spending by $500', currency: true });
+const healthcareEditor = numberEditor($('#monthly-healthcare'), { min: 0, max: 1000000, step: 500, name: 'Monthly healthcare in dollars', stepLabel: 'healthcare by $500', currency: true });
+const taxEditor = numberEditor($('#effective-tax-rate'), { min: 0, max: 99, step: 1, name: 'Effective tax rate in percent', stepLabel: 'effective tax rate by 1%' });
 
 function season() {
   if (state.season !== 'auto') return state.season;
@@ -184,31 +213,24 @@ function renderMilestone() {
 function renderOutlook() {
   if (!portfolio) return;
   const inflation = `${(OUTLOOK_ANNUAL_INFLATION * 100).toFixed(1)}%`;
-  // Update the explanation alongside the model, including existing encrypted pages.
-  $('.outlook-assumptions label').firstChild.textContent = 'Starting monthly spending ';
-  $('#outlook-caveat').innerHTML = `Spending rises ${inflation} a year. Assumes that growth continues. <br>Excludes taxes &amp; uneven market returns.`;
-  $('.data-explanation p:nth-child(4)').textContent = `The long-range outlook raises starting monthly spending by ${inflation} a year, spread evenly across months. It repeats the past year’s investment growth at a steady monthly rate, with withdrawals at the start of each month. Ages assume turning 50 in 2025 and use the projected calendar year; birthdays aren’t modeled. It excludes taxes, new deposits, and uneven market returns.`;
-  const input = $('#monthly-spending');
-  const amount = spendingAmount();
-  input.setCustomValidity(amount === null && input.value !== '' ? 'Enter a spending amount from $1 to $1,000,000.' : '');
-  input.setAttribute('aria-invalid', String(amount === null && input.value !== ''));
-  if (amount !== null) {
-    input.setAttribute('aria-valuenow', String(amount));
-    input.setAttribute('aria-valuetext', amount.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }));
-  } else { input.removeAttribute('aria-valuenow'); input.removeAttribute('aria-valuetext'); }
-  $$('[data-spending-step]').forEach(button => { button.disabled = !portfolio || (amount !== null && (Number(button.dataset.spendingStep) > 0 ? amount >= 1000000 : amount <= 1)); });
-  const result = amount !== null ? durationMonths(portfolio.total, amount, portfolio.annualRate) : null;
+  $('#outlook-caveat').textContent = `Spending & healthcare rise ${inflation} a year. Healthcare stops at 65; tax applies to withdrawals. Assumes past growth continues, with no uneven returns.`;
+  $('.data-explanation p:nth-child(4)').textContent = `The long-range outlook raises starting monthly spending and extra healthcare by ${inflation} a year, spread evenly across months. Healthcare applies until January 2040, the year you turn 65. Each monthly withdrawal equals those costs divided by (1 − effective tax rate), so the amount left after tax covers the costs. The model repeats the past year’s investment growth at a steady monthly rate, with withdrawals at the start of each month. Ages assume turning 50 in 2025 and use the projected calendar year; birthdays aren’t modeled. It excludes new deposits and uneven market returns. Healthcare after 65 must be included in regular spending.`;
+  const amount = spendingEditor.sync();
+  const healthcare = healthcareEditor.sync();
+  const taxPercent = taxEditor.sync();
+  $('#healthcare-note').textContent = healthcareMonthsRemaining() ? 'Extra until age 65 · 2040' : 'Extra healthcare ended at 65';
+  const result = [amount, healthcare, taxPercent].every(value => value !== null) ? durationMonths(portfolio.total, amount, portfolio.annualRate, OUTLOOK_ANNUAL_INFLATION, 600, { healthcare, healthcareMonths: healthcareMonthsRemaining(), taxRate: taxPercent / 100 }) : null;
   const ageSubtitle = outlookAgeSubtitle(result);
-  $('.outlook-subtitle').textContent = ageSubtitle;
+  $('.outlook-subtitle').textContent = result ? ageSubtitle : 'Check the amounts below';
   const host = $('#outlook-duration');
-  if (!result) host.textContent = 'Set spending';
+  if (!result) host.textContent = 'Set your scenario';
   else if (result.capped) host.textContent = '50+ years';
   else if (!result.months) host.textContent = 'Under a month';
   else {
     const years = Math.floor(result.months / 12), months = result.months % 12;
-    host.innerHTML = years ? `${years} ${years === 1 ? 'year' : 'years'}${months ? ` <small>${months} mo.</small>` : ''}` : `${months} months`;
+    host.innerHTML = years ? `${years} ${years === 1 ? 'year' : 'years'}${months ? ` <small>${months} mo.</small>` : ''}` : `${months} ${months === 1 ? 'month' : 'months'}`;
   }
-  host.setAttribute('aria-label', !result ? 'Enter a positive starting spending amount' : result.capped ? `At least 50 years, ${ageSubtitle.toLowerCase()}, assuming spending rises ${inflation} a year and growth continues` : `Approximately ${result.months} months, ${ageSubtitle.toLowerCase()}, assuming spending rises ${inflation} a year and growth continues`);
+  host.setAttribute('aria-label', !result ? 'Enter valid spending, healthcare, and tax amounts' : result.capped ? `At least 50 years, ${ageSubtitle.toLowerCase()}, including healthcare until age 65 and the chosen tax rate, assuming costs rise ${inflation} a year and growth continues` : `Approximately ${result.months} months, ${ageSubtitle.toLowerCase()}, including healthcare until age 65 and the chosen tax rate, assuming costs rise ${inflation} a year and growth continues`);
   $('#annual-growth').innerHTML = `${percent(portfolio.annualRate)} <small>/ year</small>`;
 }
 function splitLayout(rows, x, y, width, height) {
@@ -338,13 +360,12 @@ async function loadSaved() {
   } finally {
     loading = false;
     $('#reload-data-button').disabled = false;
-    $$('[data-period], [data-owner], #monthly-spending').forEach(element => { element.disabled = !portfolio; });
+    $$('[data-period], [data-owner], [data-outlook-input]').forEach(element => { element.disabled = !portfolio; });
   }
 }
 $$('[data-period]').forEach(button => button.addEventListener('click', () => { state.period = button.dataset.period; render(); }));
 $$('[data-owner]').forEach(button => button.addEventListener('click', () => { state.owner = button.dataset.owner; renderOwner(); }));
 $('#season').addEventListener('change', event => { state.season = event.target.value; render(); });
-$('#monthly-spending').addEventListener('input', () => { formatSpendingEditor(); renderOutlook(); });
 $('#reload-data-button').addEventListener('click', loadSaved);
 $('#data-info-button').addEventListener('click', () => $('#data-dialog').showModal());
 $('#lock-button').addEventListener('click', () => {
@@ -356,7 +377,7 @@ $('#lock-button').addEventListener('click', () => {
 });
 window.addEventListener('pageshow', event => { if (event.persisted) location.reload(); });
 $$('[data-close-dialog]').forEach(button => button.addEventListener('click', () => button.closest('dialog').close()));
-$$('[data-period], [data-owner], #monthly-spending').forEach(element => { element.disabled = true; });
+$$('[data-period], [data-owner], [data-outlook-input]').forEach(element => { element.disabled = true; });
 await loadSaved();
 // Check saved site files while visible; these never contact the price provider
 // or start an Actions run.
