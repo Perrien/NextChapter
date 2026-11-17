@@ -74,8 +74,8 @@ function renderHero() {
   $('#hero-arrow').innerHTML = icon(view.delta < 0 ? 'arrow-down-right' : 'arrow-up-right');
   const headlines = {
     sunny: { spring: 'A little spring sunshine.', summer: 'Hello, sunshine.', autumn: 'Golden skies.', winter: 'Bright winter skies.' },
-    cloudy: { spring: 'A quiet spring day.', summer: 'A little cloud cover.', autumn: 'A quiet autumn spell.', winter: 'Still winter skies.' },
-    rainy: { spring: 'A few passing showers.', summer: 'A little summer rain.', autumn: 'A blustery spell.', winter: 'A little frost.' },
+    cloudy: { spring: 'A quiet spring day.', summer: 'A little cloud cover.', autumn: 'A breezy autumn', winter: 'Still winter skies.' },
+    rainy: { spring: 'A few passing showers.', summer: 'A little summer rain.', autumn: 'A few autumn showers', winter: 'A little frost.' },
     storm: { spring: 'A spring storm.', summer: 'Thunder rolling through.', autumn: 'A stormy autumn spell.', winter: 'An icy spell.' }
   };
   const noun = { today: 'day', week: 'week', month: 'month', year: 'year' }[state.period];
