@@ -36,6 +36,54 @@ const publicationRow = document.createElement('div');
 publicationRow.innerHTML = '<dt>Site snapshot published</dt><dd id="publication-date">—</dd>';
 $('.data-tools dl').append(publicationRow);
 
+const spendingInput = $('#monthly-spending');
+spendingInput.type = 'text';
+spendingInput.inputMode = 'decimal';
+spendingInput.setAttribute('role', 'spinbutton');
+spendingInput.setAttribute('aria-label', 'Starting monthly spending in dollars');
+spendingInput.setAttribute('aria-valuemin', '1');
+spendingInput.setAttribute('aria-valuemax', '1000000');
+spendingInput.step = '500';
+const spendingStepper = document.createElement('span');
+spendingStepper.className = 'spending-stepper';
+spendingStepper.innerHTML = '<button type="button" data-spending-step="1" aria-label="Increase monthly spending by $500" disabled><span aria-hidden="true">▴</span></button><button type="button" data-spending-step="-1" aria-label="Decrease monthly spending by $500" disabled><span aria-hidden="true">▾</span></button>';
+spendingInput.parentElement.append(spendingStepper);
+function spendingAmount() {
+  const raw = spendingInput.value.replaceAll(',', '').trim();
+  if (!/^\d+(?:\.\d{0,2})?$/.test(raw)) return null;
+  const value = Number(raw);
+  return value >= 1 && value <= 1000000 ? value : null;
+}
+function formatSpendingEditor() {
+  const raw = spendingInput.value;
+  const plain = raw.replaceAll(',', '');
+  if (!/^\d*(?:\.\d{0,2})?$/.test(plain)) return;
+  const beforeCaret = raw.slice(0, spendingInput.selectionStart ?? raw.length).replaceAll(',', '').length;
+  const [whole, fraction] = plain.split('.');
+  const formatted = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (fraction === undefined ? '' : '.' + fraction);
+  spendingInput.value = formatted;
+  let caret = 0, characters = 0;
+  while (caret < formatted.length && characters < beforeCaret) { if (formatted[caret] !== ',') characters++; caret++; }
+  if (document.activeElement === spendingInput) spendingInput.setSelectionRange(caret, caret);
+}
+function stepSpending(direction) {
+  if (!portfolio) return;
+  const value = Math.min(1000000, Math.max(1, Math.round(((spendingAmount() ?? 0) + direction * 500) * 100) / 100));
+  spendingInput.value = value.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  renderOutlook();
+}
+formatSpendingEditor();
+$$('[data-spending-step]').forEach(button => button.addEventListener('click', () => stepSpending(Number(button.dataset.spendingStep))));
+spendingInput.addEventListener('keydown', event => {
+  if (!event.ctrlKey && !event.metaKey && !event.altKey && ['ArrowUp', 'ArrowDown'].includes(event.key)) {
+    event.preventDefault(); stepSpending(event.key === 'ArrowUp' ? 1 : -1);
+  }
+});
+spendingInput.addEventListener('blur', () => {
+  const value = spendingAmount();
+  if (value !== null) spendingInput.value = value.toLocaleString('en-US', { maximumFractionDigits: 2 });
+});
+
 function season() {
   if (state.season !== 'auto') return state.season;
   const month = Number(dateInZone(Date.now(), 'America/Chicago').slice(5, 7));
@@ -141,7 +189,15 @@ function renderOutlook() {
   $('#outlook-caveat').innerHTML = `Spending rises ${inflation} a year. Assumes that growth continues. <br>Excludes taxes &amp; uneven market returns.`;
   $('.data-explanation p:nth-child(4)').textContent = `The long-range outlook raises starting monthly spending by ${inflation} a year, spread evenly across months. It repeats the past year’s investment growth at a steady monthly rate, with withdrawals at the start of each month. Ages assume turning 50 in 2025 and use the projected calendar year; birthdays aren’t modeled. It excludes taxes, new deposits, and uneven market returns.`;
   const input = $('#monthly-spending');
-  const result = input.validity.valid && input.value !== '' ? durationMonths(portfolio.total, Number(input.value), portfolio.annualRate) : null;
+  const amount = spendingAmount();
+  input.setCustomValidity(amount === null && input.value !== '' ? 'Enter a spending amount from $1 to $1,000,000.' : '');
+  input.setAttribute('aria-invalid', String(amount === null && input.value !== ''));
+  if (amount !== null) {
+    input.setAttribute('aria-valuenow', String(amount));
+    input.setAttribute('aria-valuetext', amount.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }));
+  } else { input.removeAttribute('aria-valuenow'); input.removeAttribute('aria-valuetext'); }
+  $$('[data-spending-step]').forEach(button => { button.disabled = !portfolio || (amount !== null && (Number(button.dataset.spendingStep) > 0 ? amount >= 1000000 : amount <= 1)); });
+  const result = amount !== null ? durationMonths(portfolio.total, amount, portfolio.annualRate) : null;
   const ageSubtitle = outlookAgeSubtitle(result);
   $('.outlook-subtitle').textContent = ageSubtitle;
   const host = $('#outlook-duration');
@@ -288,7 +344,7 @@ async function loadSaved() {
 $$('[data-period]').forEach(button => button.addEventListener('click', () => { state.period = button.dataset.period; render(); }));
 $$('[data-owner]').forEach(button => button.addEventListener('click', () => { state.owner = button.dataset.owner; renderOwner(); }));
 $('#season').addEventListener('change', event => { state.season = event.target.value; render(); });
-$('#monthly-spending').addEventListener('input', renderOutlook);
+$('#monthly-spending').addEventListener('input', () => { formatSpendingEditor(); renderOutlook(); });
 $('#reload-data-button').addEventListener('click', loadSaved);
 $('#data-info-button').addEventListener('click', () => $('#data-dialog').showModal());
 $('#lock-button').addEventListener('click', () => {

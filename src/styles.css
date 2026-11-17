@@ -176,6 +176,7 @@ button:disabled { cursor: wait; opacity: .55; }.hero-footnote { max-width: 90%; 
 .card-bottom, .person-bottom { line-height: 1.5; }.history-note { line-height: 1.7; }
 .history-chart { height: 165px; margin-left: 0; margin-right: 0; }.chart-axis-label { font-size: 10px; fill: #718379; }
 #annual-growth small { font-size: 10px; font-weight: 400; color: var(--muted); }
+.spending-input { max-width: 100%; }.spending-input input { width: 80px; min-width: 0; }.spending-stepper { display: grid; width: 25px; flex: 0 0 25px; margin-left: 3px; }.spending-stepper button { display: grid; place-items: center; width: 25px; min-height: 22px; border: 0; border-radius: 4px; padding: 0; background: #e6ecdf; color: #4f6955; font-size: 12px; line-height: 1; }.spending-stepper button:hover { background: #d8e2d0; }.spending-stepper button:disabled { cursor: default; opacity: .35; }.spending-stepper button:first-child { border-bottom: 1px solid #ffffffc0; }
 @media(max-width: 430px) { .period-picker { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); border-radius: 21px; width: 260px; max-width: 100%; }.hero-content { padding-bottom: 80px; }.weather-hero { min-height: 510px; }.weather-message { min-height: 33px; }.hero-footnote { max-width: 260px; } }
 
 /* Shared-passphrase entry. No portfolio content is rendered before unlocking. */
