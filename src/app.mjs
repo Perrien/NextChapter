@@ -40,7 +40,7 @@ $('.data-tools dl').append(publicationRow);
 const growthAssumption = $('#annual-growth').parentElement;
 const healthcareLabel = document.createElement('label');
 healthcareLabel.htmlFor = 'monthly-healthcare';
-healthcareLabel.innerHTML = '<span>Healthcare / month</span><span class="spending-input"><span>$</span><input id="monthly-healthcare" value="1500" aria-describedby="healthcare-note outlook-caveat"></span><small id="healthcare-note">Extra until age 65 · 2040</small>';
+healthcareLabel.innerHTML = '<span>Healthcare / month</span><span class="spending-input"><span>$</span><input id="monthly-healthcare" value="2500" aria-describedby="healthcare-note outlook-caveat"></span><small id="healthcare-note">Extra until age 65 · 2040</small>';
 const taxLabel = document.createElement('label');
 taxLabel.htmlFor = 'effective-tax-rate';
 taxLabel.innerHTML = '<span>Effective tax rate</span><span class="spending-input tax-input"><input id="effective-tax-rate" value="10" aria-describedby="outlook-caveat"><span>%</span></span>';
