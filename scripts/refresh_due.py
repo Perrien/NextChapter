@@ -12,18 +12,26 @@ SLOTS = ((11, 15), (14, 15), (21, 15))
 PUBLICATION_URL = 'https://perrien.github.io/NextChapter/data/publication.json'
 
 
+def latest_due_slot(now):
+    local = now.astimezone(CENTRAL)
+    # Delayed timers can arrive after midnight or on Saturday. Keep the most
+    # recent weekday obligation instead of discarding it at the date boundary.
+    for days_back in range(8):
+        day = local.date() - dt.timedelta(days=days_back)
+        if day.weekday() >= 5:
+            continue
+        for hour, minute in reversed(SLOTS):
+            slot = dt.datetime.combine(day, dt.time(hour, minute), tzinfo=CENTRAL)
+            if slot <= local:
+                return slot
+    raise ValueError('Could not determine the latest refresh slot')
+
+
 def refresh_due(event, fetched_at, now=None):
     if event != 'schedule':
         return True, 'Manual requests and source pushes always proceed.'
     now = now or dt.datetime.now(dt.timezone.utc)
-    local = now.astimezone(CENTRAL)
-    if local.weekday() >= 5:
-        return False, 'No scheduled refresh is due on the weekend.'
-    due = [local.replace(hour=hour, minute=minute, second=0, microsecond=0) for hour, minute in SLOTS]
-    due = [slot for slot in due if slot <= local]
-    if not due:
-        return False, 'The first refresh slot has not arrived yet.'
-    slot = max(due)
+    slot = latest_due_slot(now)
     try:
         fetched = dt.datetime.fromisoformat(fetched_at.replace('Z', '+00:00'))
         if fetched.tzinfo is None or fetched > now + dt.timedelta(minutes=5):
@@ -31,12 +39,13 @@ def refresh_due(event, fetched_at, now=None):
     except (AttributeError, TypeError, ValueError):
         return True, 'The published snapshot timestamp is missing or invalid; attempt a refresh.'
     if fetched >= slot:
-        return False, f'The {slot:%H:%M} Central slot already has a successfully published snapshot.'
-    return True, f'The {slot:%H:%M} Central slot needs a fresh snapshot.'
+        return False, f'The {slot:%Y-%m-%d %H:%M} Central slot already has a successfully published snapshot.'
+    return True, f'The {slot:%Y-%m-%d %H:%M} Central slot needs a fresh snapshot.'
 
 
 def main():
     event = os.environ.get('GITHUB_EVENT_NAME', 'workflow_dispatch')
+    print(f'Trigger: {event}; UTC cron: {os.environ.get("SCHEDULE_EXPRESSION") or "n/a"}; checked at {dt.datetime.now(CENTRAL).isoformat()}')
     fetched = None
     if event == 'schedule':
         try:

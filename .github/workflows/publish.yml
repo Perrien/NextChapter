@@ -5,10 +5,11 @@ on:
     branches: [main]
   workflow_dispatch:
   schedule:
-    # A second attempt catches a delayed/dropped primary timer event. The gate
-    # below skips a slot that already has a successfully published price snapshot.
-    - cron: '15,45 11,14,21 * * 1-5'
-      timezone: America/Chicago
+    # Explicit UTC checks cover both Central offsets (CST/CDT). The Python gate
+    # chooses the latest due Central-time slot, including a missed prior night.
+    # Extra checks skip downloads when that slot has already been published.
+    - cron: '15,45 16,17,19,20 * * 1-5'
+    - cron: '15,45 2,3 * * 2-6'
 
 permissions:
   contents: read
@@ -31,6 +32,8 @@ jobs:
           ref: main
       - name: Check whether this refresh slot is still due
         id: due
+        env:
+          SCHEDULE_EXPRESSION: ${{ github.event.schedule }}
         run: python3 scripts/refresh_due.py
   publish:
     needs: refresh-check
