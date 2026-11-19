@@ -7,7 +7,6 @@ const money = value => new Intl.NumberFormat('en-US', { style: 'currency', curre
 const signedMoney = value => `${value < -0.005 ? '−' : '+'}${money(Math.abs(value))}`;
 const percent = value => `${value < -0.0000001 ? '−' : '+'}${Math.abs(value * 100).toFixed(2)}%`;
 const dateLabel = (date, year = false) => new Date(`${date}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(year ? { year: 'numeric' } : {}), timeZone: 'UTC' });
-const escape = value => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 const groups = { domestic: 'Domestic', international: 'International', bonds: 'Bonds' };
 const periodLabels = { today: 'latest trading day', week: 'this week', month: 'this month', year: 'over the past year' };
 const periodNames = { today: 'Latest trading day', week: 'This week', month: 'This month', year: 'Past year' };
@@ -37,11 +36,14 @@ publicationRow.innerHTML = '<dt>Site snapshot published</dt><dd id="publication-
 $('.data-tools dl').append(publicationRow);
 // Keep source notices beside the update tools, below the portfolio cards.
 $('#data-tools').before($('#data-banner'));
+// Remove the retired heat map from existing encrypted pages.
+$('.holdings-card').remove();
+$('#holding-dialog').remove();
 // Move the actual cards so reading and keyboard order match the layout.
 $('.dashboard-grid').append(...[
   '.milestone-card', '.outlook-card', '.person-card',
   '[data-group="domestic"]', '[data-group="international"]', '[data-group="bonds"]',
-  '.holdings-card', '.history-card'
+  '.history-card'
 ].map(selector => $(selector)));
 
 // Keep scenario controls in generic assets so the encrypted page stays usable.
@@ -241,39 +243,6 @@ function renderOutlook() {
   host.setAttribute('aria-label', !result ? 'Enter valid spending, healthcare, and tax amounts' : result.capped ? `At least 50 years, ${ageSubtitle.toLowerCase()}, including healthcare until age 65 and the chosen tax rate, assuming costs rise ${inflation} a year and growth continues` : `Approximately ${result.months} months, ${ageSubtitle.toLowerCase()}, including healthcare until age 65 and the chosen tax rate, assuming costs rise ${inflation} a year and growth continues`);
   $('#annual-growth').innerHTML = `${percent(portfolio.annualRate)} <small>/ year</small>`;
 }
-function splitLayout(rows, x, y, width, height) {
-  if (rows.length === 1) return [{ row: rows[0], x, y, width, height }];
-  const value = rows.reduce((sum, row) => sum + row.value, 0);
-  let part = 0, index = 1, best = Infinity;
-  for (let i = 1; i < rows.length; i++) { part += rows[i - 1].value; const distance = Math.abs(value / 2 - part); if (distance < best) { index = i; best = distance; } }
-  const before = rows.slice(0, index), after = rows.slice(index), fraction = before.reduce((sum, row) => sum + row.value, 0) / value;
-  return width >= height ? [...splitLayout(before, x, y, width * fraction, height), ...splitLayout(after, x + width * fraction, y, width * (1 - fraction), height)] : [...splitLayout(before, x, y, width, height * fraction), ...splitLayout(after, x, y + height * fraction, width, height * (1 - fraction))];
-}
-function renderTreemap() {
-  if (!view) return;
-  const host = $('#treemap'), width = host.clientWidth, height = host.clientHeight;
-  if (!width || !height) return;
-  const sorted = [...view.rows].sort((a, b) => b.value - a.value);
-  const small = sorted.filter(row => row.value < portfolio.total * 0.02);
-  const tiles = sorted.filter(row => row.value >= portfolio.total * 0.02);
-  if (small.length) tiles.push({ ticker: 'other', name: `${small.length} smaller holdings`, short_name: 'Smaller patches', ...summarize(small), children: small });
-  tiles.sort((a, b) => b.value - a.value);
-  const focused = host.contains(document.activeElement) ? document.activeElement.dataset.ticker : null;
-  host.replaceChildren();
-  splitLayout(tiles, 0, 0, width, height).forEach(tile => {
-    const row = tile.row, button = document.createElement('button');
-    button.type = 'button';
-    button.dataset.ticker = row.ticker;
-    button.className = `holding-tile${row.delta < 0 ? ' tile-negative' : ''}${tile.width < 105 || tile.height < 95 ? ' tile-compact' : ''}${tile.width < 65 || tile.height < 48 ? ' tile-small' : ''}${tile.width < 38 ? ' tile-tiny' : ''}`;
-    button.style.cssText = `left:${tile.x / width * 100}%;top:${tile.y / height * 100}%;width:${tile.width / width * 100}%;height:${tile.height / height * 100}%;`;
-    button.setAttribute('aria-label', `${row.name}, ${money(row.value)}, ${percent(row.rate)} ${periodLabels[state.period]}. Open details.`);
-    button.title = `${row.ticker === 'other' ? row.name : row.ticker}: ${money(row.value)} · ${percent(row.rate)}`;
-    button.innerHTML = `<span><span class="tile-ticker">${row.ticker === 'other' ? `+ ${small.length} more` : escape(row.ticker)}</span><span class="tile-name">${escape(row.short_name)}</span></span><span class="tile-return">${percent(row.rate)}</span>`;
-    button.addEventListener('click', () => openHolding(row));
-    host.append(button);
-  });
-  if (focused) $(`[data-ticker="${CSS.escape(focused)}"]`, host)?.focus();
-}
 function renderHistory() {
   if (!portfolio) return;
   const historyView = comparePeriod(portfolio, 'year');
@@ -300,38 +269,10 @@ function renderHistory() {
   $('#history-end').textContent = dateLabel(historyView.endDate, true);
   $('#history-price-note').textContent = estimated ? 'Dashed segment = current estimate.' : 'Published prices. Not actual past account balances.';
 }
-function openHolding(row) {
-  const dialog = $('#holding-dialog'), grouped = row.ticker === 'other';
-  $('#holding-ticker').textContent = grouped ? 'THE SMALLER PATCHES' : row.ticker;
-  $('#holding-name').textContent = row.name;
-  $('#holding-value').textContent = money(row.value);
-  setDelta($('#holding-change'), row.delta);
-  $('#holding-change').textContent += ` · ${percent(row.rate)} ${periodLabels[state.period]} · includes payouts`;
-  $('#holding-owner').textContent = grouped ? 'Kim & Ashley' : row.owner;
-  $('#holding-shares').previousElementSibling.textContent = grouped ? 'Holdings' : 'Shares';
-  $('#holding-shares').textContent = grouped ? String(row.children.length) : row.shares.toLocaleString('en-US', { maximumFractionDigits: 6 });
-  $('#holding-price').parentElement.hidden = grouped;
-  $('#holding-price').textContent = grouped ? '' : row.price.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: row.estimated ? 4 : 2 });
-  $('#holding-group').textContent = grouped ? 'Mixed' : groups[row.group];
-  $('#holding-price-note').textContent = grouped ? 'Select a holding for its individual price and source.' : `${row.estimated ? `Estimated from ${row.proxy} (${row.proxy_match} match)` : row.intraday ? 'Market quote' : 'Published closing price'} · ${dateLabel(row.priceDate, true)}. ${row.estimated ? row.proxy_note : ''}`;
-  $('#holding-source').hidden = grouped;
-  if (!grouped) $('#holding-source').href = row.source;
-  const list = $('#small-holdings-list');
-  list.replaceChildren();
-  if (grouped) for (const child of row.children) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'small-holding-button';
-    button.innerHTML = `<span>${escape(child.ticker)}</span><span>${money(child.value)}</span>`;
-    button.addEventListener('click', () => openHolding(child));
-    list.append(button);
-  }
-  if (!dialog.open) dialog.showModal();
-}
 function render() {
   if (!portfolio) return;
   view = comparePeriod(portfolio, state.period);
-  renderHero(); renderCards(); renderMilestone(); renderOutlook(); renderTreemap(); renderHistory();
+  renderHero(); renderCards(); renderMilestone(); renderOutlook(); renderHistory();
   $('#snapshot-status').textContent = `Yahoo prices through ${dateLabel(portfolio.asOf, true)}`;
   $('#close-date').textContent = dateLabel(portfolio.commonDate, true);
   $('#download-date').textContent = new Date(portfolio.market.fetched_at).toLocaleString('en-US', { timeZone: 'America/Chicago', dateStyle: 'medium', timeStyle: 'short' }) + ' CT';
@@ -394,7 +335,6 @@ setInterval(() => { if (!document.hidden) loadSaved(); }, 5 * 60 * 1000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - lastRefresh > 60000) loadSaved(); });
 let resizeFrame;
 if ('ResizeObserver' in window) {
-  const observer = new ResizeObserver(() => { cancelAnimationFrame(resizeFrame); resizeFrame = requestAnimationFrame(() => { renderTreemap(); renderHistory(); }); });
-  observer.observe($('#treemap'));
+  const observer = new ResizeObserver(() => { cancelAnimationFrame(resizeFrame); resizeFrame = requestAnimationFrame(() => { renderHistory(); }); });
   observer.observe($('#history-chart'));
-} else window.addEventListener('resize', () => { renderTreemap(); renderHistory(); });
+} else window.addEventListener('resize', () => { renderHistory(); });

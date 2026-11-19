@@ -67,8 +67,8 @@ Use **Data & updates → Reload saved prices** on the open dashboard after a dow
 - Current share-price valuations, actual source dates, and owner/sector reconciliation.
 - Today (latest trading day), this week, this month, and trailing-year comparisons.
 - Joint / Kim / Ashley selection inside the one portfolio card.
-- Seasonal weather, holdings details, a weighted heat map, and a fixed past-year growth chart with weekly snapshots.
-- Card order: next summit, long-range outlook, Joint/Kim/Ashley, domestic/international/bonds, portfolio landscape, and Growth over time.
+- Seasonal weather and a fixed past-year growth chart with weekly snapshots.
+- Card order: next summit, long-range outlook, Joint/Kim/Ashley, domestic/international/bonds, and Growth over time.
 - Growth over time uses each Monday–Sunday week’s last observed common close, plus the year-start anchor and a labeled latest estimate when applicable. It stays on the past year independently of the overview period selector.
 - Actual trailing-year growth for milestone pace and the $10,000/month spending scenario.
 - Intraday estimates aligned to the last fund NAV date; direct stock/ETF quotes use their own prices. A published fund close is never moved a second time using that same day's proxy change.
