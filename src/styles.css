@@ -167,8 +167,8 @@ dialog { border: 1px solid #e1e7d9; border-radius: 24px; background: #f9faf4; co
 @media (pointer: coarse) { .owner-picker button { min-height: 44px; } }
 
 /* Real-data states. */
-.data-banner { background: #f1e8cf; border-radius: 12px; color: #665d3c; padding: 12px 16px; font-size: 12px; line-height: 1.6; margin-bottom: 15px; }
-.data-banner[hidden] { display: none; }.data-banner.is-error { background: #f0dfd4; color: #80533e; }
+.data-banner { border-left: 2px solid #b8bea7; color: var(--muted); padding: 6px 12px; font-size: 12px; line-height: 1.6; margin: 0 0 20px; }
+.data-banner[hidden] { display: none; }.data-banner.is-error { border-left-color: #b47c62; color: #80533e; }
 .data-explanation p { font-size: 13px; line-height: 1.8; color: var(--muted); margin-bottom: 14px; }
 #holding-source { color: #4a745c; display: inline-block; margin-top: 8px; }
 #small-holdings-list { display: grid; gap: 6px; margin: 12px 0; }

@@ -35,6 +35,8 @@ $('.data-tools-explanation').textContent = 'Opens GitHub. Choose “Run workflow
 const publicationRow = document.createElement('div');
 publicationRow.innerHTML = '<dt>Site snapshot published</dt><dd id="publication-date">—</dd>';
 $('.data-tools dl').append(publicationRow);
+// Keep source notices beside the update tools, below the portfolio cards.
+$('#data-tools').before($('#data-banner'));
 
 // Keep scenario controls in generic assets so the encrypted page stays usable.
 const growthAssumption = $('#annual-growth').parentElement;
