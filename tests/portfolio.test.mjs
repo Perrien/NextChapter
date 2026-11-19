@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { preparePortfolio, comparePeriod, summarize, durationMonths, outlookAgeSubtitle, healthcareMonthsRemaining, milestone, yearBefore, baselineTarget } from '../src/portfolio.mjs';
+import { preparePortfolio, comparePeriod, weeklyHistory, summarize, durationMonths, outlookAgeSubtitle, healthcareMonthsRemaining, milestone, yearBefore, baselineTarget } from '../src/portfolio.mjs';
 
 const definition = { ticker: 'FUND', name: 'Test fund', group: 'domestic', type: 'MUTUALFUND', proxy: 'ETF', proxy_match: 'close' };
 const bars = (first = 9, end = 10) => [
@@ -97,6 +97,29 @@ test('invalid or incomplete prices never produce a partial household total', () 
   data.series.FUND.daily.at(-1).close = null;
   assert.throws(() => preparePortfolio(data, positions, [definition], sunday), /invalid daily/);
   assert.throws(() => preparePortfolio(fixture(), [{ ...positions[0], shares: -10 }], [definition], sunday), /Invalid holding/);
+});
+test('weekly history preserves the year anchor, week-end observations, and current estimate', () => {
+  const dates = ['2026-11-05', '2026-11-06', '2026-11-09', '2026-11-10', '2026-11-12', '2026-11-13', '2026-11-16', '2026-11-17', '2026-11-18'];
+  const history = dates.map((date, index) => ({ date, value: 100 + index, estimated: index === dates.length - 1 }));
+  const sampled = weeklyHistory(history);
+  assert.deepEqual(sampled.map(p => p.date), ['2026-11-05', '2026-11-06', '2026-11-13', '2026-11-17', '2026-11-18']);
+  assert.equal(sampled.at(-1).estimated, true);
+  assert.ok(sampled.every(point => history.includes(point))); // No averaging or invented prices.
+  assert.equal(history.length, 9);
+});
+test('weekly history uses observed holiday closes and keeps calendar weeks across New Year', () => {
+  const points = dates => dates.map(date => ({ date, value: 100, estimated: false }));
+  const history = points(['2025-12-29', '2025-12-31', '2026-01-02', '2026-01-05', '2026-01-06']);
+  assert.deepEqual(weeklyHistory(history).map(p => p.date), ['2025-12-29', '2026-01-02', '2026-01-06']);
+  const holiday = points(['2026-12-21', '2026-12-22', '2026-12-24']);
+  assert.deepEqual(weeklyHistory(holiday).map(p => p.date), ['2026-12-21', '2026-12-24']);
+});
+test('weekly history handles empty and single-point ranges without duplicate endpoints', () => {
+  assert.deepEqual(weeklyHistory([]), []);
+  const point = { date: '2026-11-13', value: 100, estimated: false };
+  assert.deepEqual(weeklyHistory([point]), [point]);
+  const estimated = { ...point, value: 101, estimated: true };
+  assert.deepEqual(weeklyHistory([point, estimated]), [estimated]);
 });
 test('spending model uses beginning-of-month withdrawals and matches the annuity formula', () => {
   assert.deepEqual(durationMonths(120000, 10000, 0, 0), { months: 12, capped: false });

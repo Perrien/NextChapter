@@ -1,4 +1,4 @@
-import { preparePortfolio, comparePeriod, summarize, durationMonths, outlookAgeSubtitle, healthcareMonthsRemaining, milestone, dateInZone, OUTLOOK_ANNUAL_INFLATION } from './portfolio.mjs';
+import { preparePortfolio, comparePeriod, weeklyHistory, summarize, durationMonths, outlookAgeSubtitle, healthcareMonthsRemaining, milestone, dateInZone, OUTLOOK_ANNUAL_INFLATION } from './portfolio.mjs';
 import { icon } from './icons.mjs';
 
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -37,6 +37,12 @@ publicationRow.innerHTML = '<dt>Site snapshot published</dt><dd id="publication-
 $('.data-tools dl').append(publicationRow);
 // Keep source notices beside the update tools, below the portfolio cards.
 $('#data-tools').before($('#data-banner'));
+// Move the actual cards so reading and keyboard order match the layout.
+$('.dashboard-grid').append(...[
+  '.milestone-card', '.outlook-card', '.person-card',
+  '[data-group="domestic"]', '[data-group="international"]', '[data-group="bonds"]',
+  '.holdings-card', '.history-card'
+].map(selector => $(selector)));
 
 // Keep scenario controls in generic assets so the encrypted page stays usable.
 const growthAssumption = $('#annual-growth').parentElement;
@@ -269,12 +275,13 @@ function renderTreemap() {
   if (focused) $(`[data-ticker="${CSS.escape(focused)}"]`, host)?.focus();
 }
 function renderHistory() {
-  if (!view) return;
-  setDelta($('#history-delta'), view.delta);
-  $('#history-subtitle').textContent = `Growth from ${dateLabel(view.baselineDate, true)}`;
+  if (!portfolio) return;
+  const historyView = comparePeriod(portfolio, 'year');
+  setDelta($('#history-delta'), historyView.delta);
+  $('#history-subtitle').textContent = 'Past year · Weekly snapshots';
   const host = $('#history-chart'), width = host.clientWidth, height = host.clientHeight;
   if (!width || !height) return;
-  const data = view.history;
+  const data = weeklyHistory(historyView.history);
   const low = Math.min(...data.map(x => x.value)), high = Math.max(...data.map(x => x.value));
   const padding = Math.max((high - low) * 0.15, portfolio.total * 0.0002);
   const minimum = low - padding, maximum = high + padding;
@@ -286,11 +293,11 @@ function renderHistory() {
   const path = solid.map((p, i) => `${i ? 'L' : 'M'}${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' ');
   const allPath = points.map((p, i) => `${i ? 'L' : 'M'}${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' ');
   const last = points.at(-1), prior = points.at(-2) || last;
-  const color = view.delta < 0 ? '#a17457' : '#829b75';
+  const color = historyView.delta < 0 ? '#a17457' : '#829b75';
   const compact = value => new Intl.NumberFormat('en-US', { notation: 'compact', style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(value);
-  host.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Growth of current holdings from ${dateLabel(view.baselineDate, true)} to ${dateLabel(view.endDate, true)}, scaled to current value. Includes reinvested payouts."><defs><linearGradient id="history-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${color}" stop-opacity=".2"/><stop offset="100%" stop-color="${color}" stop-opacity="0"/></linearGradient></defs><text x="8" y="11" class="chart-axis-label">${compact(high)}</text><path d="M8 ${height - 2}H${width - 8}" fill="none" stroke="#e5e9df"/><path d="${allPath} L${last.x},${height} L${points[0].x},${height}Z" fill="url(#history-fill)"/><path d="${path}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round"/>${estimated ? `<path d="M${prior.x},${prior.y}L${last.x},${last.y}" fill="none" stroke="${color}" stroke-width="2" stroke-dasharray="3 4"/>` : ''}${points.map((p, i) => `<circle cx="${p.x}" cy="${p.y}" r="${i === points.length - 1 ? 3.5 : 2}" fill="${color}"><title>${dateLabel(p.date, true)}: ${money(p.value)}${p.estimated ? ' (estimate)' : ''}</title></circle>`).join('')}</svg>`;
-  $('#history-start').textContent = dateLabel(view.baselineDate);
-  $('#history-end').textContent = dateLabel(view.endDate);
+  host.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Past year of growth, with weekly observations, from ${dateLabel(historyView.baselineDate, true)} to ${dateLabel(historyView.endDate, true)}, scaled to current value. Includes reinvested payouts."><defs><linearGradient id="history-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${color}" stop-opacity=".2"/><stop offset="100%" stop-color="${color}" stop-opacity="0"/></linearGradient></defs><text x="8" y="11" class="chart-axis-label">${compact(high)}</text><path d="M8 ${height - 2}H${width - 8}" fill="none" stroke="#e5e9df"/><path d="${allPath} L${last.x},${height} L${points[0].x},${height}Z" fill="url(#history-fill)"/><path d="${path}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round"/>${estimated ? `<path d="M${prior.x},${prior.y}L${last.x},${last.y}" fill="none" stroke="${color}" stroke-width="2" stroke-dasharray="3 4"/>` : ''}${points.map((p, i) => `<circle cx="${p.x}" cy="${p.y}" r="${i === points.length - 1 ? 3.5 : 2}" fill="${color}"><title>${dateLabel(p.date, true)}: ${money(p.value)}${p.estimated ? ' (estimate)' : ''}</title></circle>`).join('')}</svg>`;
+  $('#history-start').textContent = dateLabel(historyView.baselineDate, true);
+  $('#history-end').textContent = dateLabel(historyView.endDate, true);
   $('#history-price-note').textContent = estimated ? 'Dashed segment = current estimate.' : 'Published prices. Not actual past account balances.';
 }
 function openHolding(row) {

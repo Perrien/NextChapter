@@ -138,6 +138,22 @@ export function comparePeriod(portfolio, period) {
   const pending = (period === 'week' || period === 'month') && baselineDate === portfolio.asOf;
   return { ...summary, rows, history, baselineDate, endDate: portfolio.asOf, pending };
 }
+export function weeklyHistory(history) {
+  if (!history.length) return [];
+  // Use each calendar week's last observed shared close, including short
+  // holiday weeks. Keep the year-start anchor and the labeled latest estimate.
+  const weeks = new Map();
+  for (const point of history) {
+    if (point.estimated) continue;
+    const weekday = new Date(`${point.date}T12:00:00Z`).getUTCDay();
+    weeks.set(addDays(point.date, -((weekday + 6) % 7)), point);
+  }
+  const selected = new Map([[history[0].date, history[0]]]);
+  for (const point of weeks.values()) selected.set(point.date, point);
+  const last = history.at(-1);
+  if (last.estimated) selected.set(last.date, last);
+  return [...selected.values()];
+}
 export const OUTLOOK_ANNUAL_INFLATION = 0.025;
 export function healthcareMonthsRemaining(now = Date.now(), birthYear = 1975) {
   const [year, month] = dateInZone(now, 'America/Chicago').split('-').map(Number);
